@@ -1,13 +1,22 @@
 #include <map>
 #include <string>
 #include <vector>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <stdio.h>
+#include <string.h>
+#include <unistd.h>
+
+#include "err.h"
 using namespace std;
 
 typedef struct RNG_t
 {
 private:
-    unsigned int seed;
-    unsigned long long number;
+    uint32_t seed;
+    uint64_t number;
+
 public:
 } RNG;
 
@@ -18,22 +27,22 @@ private:
 
 public:
     event_msg();
-    int len;
-    int event_no;
-    unsigned char event_type;
+    uint32_t len;
+    uint32_t event_no;
+    uint8_t event_type;
     string event_data;
-    int crc32;
+    uint32_t crc32;
     string to_string();
 };
 
 typedef struct player_t
 {
 private:
-    unsigned int last_msg_time_stamp;
+    uint32_t last_msg_time_stamp;
 
 public:
     const string name;
-    const int socket;
+    const uint32_t socket;
     char player_number;
 } player;
 
@@ -41,18 +50,19 @@ typedef struct client_t
 {
     private:
     public:
-        unsigned int last_msg_time_stamp;
+        uint32_t last_msg_time_stamp;
+        struct sockaddr *client_address;
 }client;
 
 typedef struct game_t
 {
 private:
     map<string, player> player_list;
-    unsigned int height;
-    unsigned int width;
-    unsigned int game_id;
-    unsigned int turn_speed;
-    int player_direction[25];
+    uint32_t height;
+    uint32_t width;
+    uint32_t game_id;
+    uint32_t turn_speed;
+    uint32_t player_direction[25];
 
 public:
     vector<string> events;
