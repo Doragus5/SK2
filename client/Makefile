@@ -5,13 +5,16 @@ OBJECTS = *.o
 
 .PHONY: all clean
 
-all: client
+all: klient
 
-serwer: $(OBJECTS) 
-    $(CXX) $(CXXFLAGS) $^ -o $@ $(LDFLAGS)
+klient: client.o err.o 
+	$(CC) -o $@ $^ $(LDFLAGS)
 
-%.o: %.cpp
-    $(CXX) $(CXXFLAGS) -c $< -o $@
+client.o: client.cpp 
+	$(CC) $(CFLAGS) -c $<
+
+err.o: err.cpp 
+	$(CC) $(CFLAGS) -c $<
 
 clean:
-    rm *.o serwer
+	rm -f *.o serwer

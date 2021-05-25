@@ -6,8 +6,11 @@ LDFLAGS= -lstdc++fs
 
 all: serwer
 
-serwer: server.o err.o misc_structs.o parser.o
+serwer: main.o server.o err.o misc_structs.o parser.o
 	$(CC) -o $@ $^ $(LDFLAGS)
+
+main.o: main.cpp 
+	$(CC) $(CFLAGS) -c $<
 
 server.o: server.cpp 
 	$(CC) $(CFLAGS) -c $<
