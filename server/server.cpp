@@ -10,6 +10,18 @@ server::server_t(int32_t height, int32_t width, uint32_t turn_speed, uint32_t fp
     current_game = game(height, width, turn_speed, &rng, this);
 }
 //-------------METHODS-------------
+string server::client_id_to_str(client_key key)
+{
+    string s = "<";
+    s += std::to_string(key.first);
+    s += ',';
+    s += std::to_string(key.second.first.first);
+    s += std::to_string(key.second.first.second);
+    s += std::to_string(key.second.second.first);
+    s += std::to_string(key.second.second.second);
+    s += '>';
+    return s;
+}
 client_key server::client_identifier(sockaddr_in6 *client_address)
 {
     return std::make_pair(client_address->sin6_port, std::make_pair(std::make_pair(client_address->sin6_addr.__in6_u.__u6_addr32[0], client_address->sin6_addr.__in6_u.__u6_addr32[1]), std::make_pair(client_address->sin6_addr.__in6_u.__u6_addr32[2], client_address->sin6_addr.__in6_u.__u6_addr32[3])));
@@ -17,6 +29,7 @@ client_key server::client_identifier(sockaddr_in6 *client_address)
 
 void server::broadcast(string msg)
 {
+    std::cout << "SERVER::broadcast\n";
     string datagram = int_to_fb(current_game.game_id);
     datagram += msg;
     sflags = 0;
@@ -31,6 +44,7 @@ void server::broadcast(string msg)
 
 void server::broadcast_many_events(sockaddr_in6 *client_address, uint32_t no_event)
 {
+    std::cout << "SERVER::broadcast_many_events\n";
     uint64_t total_events = current_game.events.size();
     if (no_event >= current_game.events.size())
         return;
@@ -48,6 +62,7 @@ void server::broadcast_many_events(sockaddr_in6 *client_address, uint32_t no_eve
 
 uint32_t server::check_client(sockaddr_in6 *client_address, client_msg msg)
 {
+    std::cout << "SERVER::check_client\n";
     auto it = clients.find(client_identifier(client_address));
     if (it == clients.end() && !current_game.player_exists(msg.player_name))
         return 0;
@@ -66,9 +81,13 @@ uint32_t server::check_client(sockaddr_in6 *client_address, client_msg msg)
 
 void server::handle_new_client(sockaddr_in6 *client_address, client_msg msg)
 {
+    std::cout << "SERVER::handle_new_client\n";
     if (clients.size() == 25 || current_game.no_of_participants == 25)
         return;
     client new_client(frame_number, *client_address, msg.session_id, msg.player_name);
+    new_client.dir = msg.turn_dir;
+    if (new_client.dir == 2)
+        new_client.dir = -1;
     auto id = client_identifier(client_address);
     clients.insert(std::make_pair(id, new_client));
     if (!current_game.game_started)
@@ -78,7 +97,8 @@ void server::handle_new_client(sockaddr_in6 *client_address, client_msg msg)
 
 void server::handle_old_client(sockaddr_in6 *client_address, client_msg msg)
 {
-    auto client = clients.find(client_identifier(client_address))->second;
+    std::cout << "SERVER::handle_old_client\n";
+        auto client = clients.find(client_identifier(client_address))->second;
     client.last_msg_time_stamp = frame_number;
     if (current_game.player_exists(msg.player_name))
         current_game.player_turning[current_game.player_number(msg.player_name)];
@@ -155,32 +175,35 @@ void server::start()
         if (numEvents > 0)
         {
             frame_number++;
+            std::cout << "\n\n\nSERVER::start::Frame number:" << frame_number << "\n";
             uint64_t timersElapsed = 0;
             (void)read(p.fd, &timersElapsed, 8);
-            std::cout << "SERVER::Trying generating new frame\n";
-            std::cout << "SERVER::Total players " << current_game.total_players << "\n";
+            std::cout << "SERVER::start::Trying generating new frame\n";
+            std::cout << "SERVER::start::Total players " << current_game.total_players << "\n";
             if (!current_game.game_started && current_game.total_players > 1)
             {
-                std::cout << "SERVER::Trying starting new game\n";
+                std::cout << "SERVER::start::Trying starting new game\n";
                 uint32_t i = 0;
-                while (i < current_game.total_players && current_game.player_turning[i])
+                for (auto it : clients)
                 {
-                    i++;
+                    auto client = it.second;
+                    if (client.name != "" && client.dir)
+                        i++;
                 }
                 if (i == current_game.total_players)
                 {
-                    std::cout << "SERVER::Starting new game\n";
+                    std::cout << "SERVER::start::Starting new game\n";
                     current_game.start_game();
                 }
             }
             else if (current_game.game_started && !current_game.game_ended)
             {
-                std::cout << "SERVER::Generating new frame\n";
+                std::cout << "SERVER::start::Generating new frame\n";
                 current_game.next_frame();
             }
             if (current_game.game_ended)
             {
-                std::cout << "SERVER::Generating new game\n";
+                std::cout << "SERVER::start::Generating new game\n";
                 current_game = game(height, width, turn_speed, &rng, this);
                 for (auto it : clients)
                 {
@@ -201,13 +224,15 @@ void server::start()
 
         if (len >= 13)
         {
-            (void)printf("SERVER::read from socket: %zd bytes: %.*s\n", len,
+            (void)printf("SERVER::start::read from socket: %zd bytes: %.*s\n", len,
                          (int32_t)len, buffer);
             client_msg received(len, buffer);
             uint32_t client_type = check_client(&client_address, received);
+            std::cout << "SERVER::case " << client_type << "\n";
             switch (client_type)
             {
             case 0:
+                std::cout << "SERVER::start::new client " << client_id_to_str(client_identifier(&client_address)) << "\n";
                 handle_new_client(&client_address, received);
                 break;
             case 1:

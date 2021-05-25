@@ -26,7 +26,7 @@ typedef struct RNG_t
 {
 private:
     uint32_t seed;
-    uint64_t number;
+    int64_t number;
 
 public:
     RNG_t(uint32_t seed);
@@ -38,6 +38,7 @@ struct event_msg
 {
 private:
     void validate();
+    string substring();
 
 public:
     event_msg();
@@ -93,6 +94,7 @@ public:
     struct sockaddr_in6 client_address;
     uint64_t session_id;
     string name;
+    int32_t dir = 0;
 } client;
 
 typedef struct game_t
@@ -118,7 +120,7 @@ public:
     uint32_t game_id;
     bool game_started = false;
     bool game_ended = false;
-    int32_t player_turning[25] = {};
+    int32_t player_turning[25] = {0};
     uint32_t no_of_participants = 0;
     vector<string> events;
 
@@ -148,7 +150,7 @@ private:
     RNG rng;
     socklen_t snda_len, rcva_len;
     map<client_key, client> clients;
-
+    string client_id_to_str(client_key key);
     client_key client_identifier(sockaddr_in6 *client_address);
     uint32_t check_client(sockaddr_in6 *client_address, client_msg msg);
     void handle_new_client(sockaddr_in6 *client_address, client_msg msg);

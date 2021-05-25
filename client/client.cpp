@@ -2,11 +2,11 @@
 #include <sys/socket.h>
 #include <netdb.h>
 #include <stdio.h>
-#include <string.h>
 #include <unistd.h>
 #include <stdlib.h>
-
+#include <cstring>
 #include "err.h"
+#include <netinet/in.h>
 
 #define BUFFER_SIZE 1000
 
@@ -55,37 +55,23 @@ int main(int argc, char *argv[])
     if (sock < 0)
         syserr("socket");
 
-    for (i = 3; i < argc; i++)
+    /*wklejam*/
+    printf("a\n");
+    const char *msg = "\0\0\0\0\0\0\0\0\1\0\0\0\0player2";
+    printf("b\n");
+    len = 20;
+    (void)printf("sending to socket: %s\n", msg);
+    sflags = 0;
+    rcva_len = (socklen_t)sizeof(my_address);
+    printf("d\n");
+    snd_len = sendto(sock, msg, len, sflags,
+                     (struct sockaddr *)&my_address, rcva_len);
+    printf("e\n");
+    if (snd_len != (ssize_t)len)
     {
-        len = strnlen(argv[i], BUFFER_SIZE);
-        if (len == BUFFER_SIZE)
-        {
-            (void)fprintf(stderr, "ignoring long parameter %d\n", i);
-            continue;
-        }
-        (void)printf("sending to socket: %s\n", argv[i]);
-        sflags = 0;
-        rcva_len = (socklen_t)sizeof(my_address);
-        snd_len = sendto(sock, argv[i], len, sflags,
-                         (struct sockaddr *)&my_address, rcva_len);
-        if (snd_len != (ssize_t)len)
-        {
-            syserr("partial / failed write");
-        }
-
-        (void)memset(buffer, 0, sizeof(buffer));
-        flags = 0;
-        len = (size_t)sizeof(buffer) - 1;
-        rcva_len = (socklen_t)sizeof(srvr_address);
-        rcv_len = recvfrom(sock, buffer, len, flags,
-                           (struct sockaddr *)&srvr_address, &rcva_len);
-
-        if (rcv_len < 0)
-        {
-            syserr("read");
-        }
-        (void)printf("read from socket: %zd bytes: %s\n", rcv_len, buffer);
+        syserr("partial / failed write");
     }
+    /*wkleilem*/
 
     if (close(sock) == -1)
     {                    //very rare errors can occur here, but then
